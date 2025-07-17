@@ -213,9 +213,14 @@ npm run android
 
 Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour les guidelines.
 
-## 📄 License
+## 📱 Contact
 
-MIT License - voir [LICENSE](LICENSE)
+- 📧 Email: nabz0r@gmail.com
+- 🐙 GitHub: [@nabz0r](https://github.com/nabz0r)
+
+## 📄 Licence
+
+MIT License - Innovation without Boundaries
 
 ## 🙏 Acknowledgments
 
@@ -227,5 +232,3 @@ MIT License - voir [LICENSE](LICENSE)
 ---
 
 *"Transformons chaque balade en forêt en aventure épique !"* 🍄🎮
-
-**Contact**: mushroom.hunter.app@gmail.com | Discord: [Join Server](https://discord.gg/mushroomhunter)
