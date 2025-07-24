@@ -1,0 +1,10 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="80" r="60" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+  <ellipse cx="100" cy="80" rx="65" ry="50" fill="#D2691E" opacity="0.8"/>
+  <rect x="85" y="80" width="30" height="60" fill="#FAEBD7" stroke="#DDD" stroke-width="1"/>
+  <circle cx="70" cy="65" r="3" fill="white"/>
+  <circle cx="130" cy="70" r="3" fill="white"/>
+  <circle cx="90" cy="90" r="2" fill="white"/>
+  <circle cx="115" cy="85" r="2" fill="white"/>
+  <text x="100" y="180" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">Mushroom Placeholder</text>
+</svg>
