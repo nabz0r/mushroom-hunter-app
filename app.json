@@ -18,6 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mushroomhunter.app",
       "buildNumber": "1",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Mushroom Hunter needs camera access to identify mushrooms",
         "NSLocationWhenInUseUsageDescription": "Mushroom Hunter needs location access to track mushroom spots",
@@ -46,8 +47,11 @@
       "expo-camera",
       "expo-location",
       "expo-image-picker",
-      "expo-media-library"
+      "expo-media-library",
+      "expo-apple-authentication",
+      "expo-sqlite"
     ],
+    "scheme": "mushroom-hunter",
     "extra": {
       "eas": {
         "projectId": "your-project-id"

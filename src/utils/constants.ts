@@ -5,6 +5,8 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
+    SSO: '/auth/sso',
+    DELETE_ACCOUNT: '/auth/delete-account',
   },
   MUSHROOMS: {
     LIST: '/mushrooms',

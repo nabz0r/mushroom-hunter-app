@@ -12,8 +12,6 @@ import { notificationService } from '@/services/notificationService';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 import { authService } from '@/services/authService';
-import api from '@/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function SettingsScreen() {
   const { t, currentLanguage } = useTranslation();
@@ -83,12 +81,12 @@ export function SettingsScreen() {
           onPress: async () => {
             setIsDeletingAccount(true);
             try {
-              await api.delete(`/users/${user?.id}`);
+              if (user?.id) {
+                await authService.deleteAccount(user.id);
+              }
             } catch (error) {
-              // Continue with local cleanup even if API call fails
-              console.warn('Failed to delete account on server:', error);
+              console.warn('Account deletion error:', error);
             }
-            await AsyncStorage.clear();
             dispatch(logout());
             setIsDeletingAccount(false);
           },

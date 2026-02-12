@@ -22,11 +22,10 @@ if (!__DEV__) {
 
 analyticsService.initialize();
 
-export default function App() {
+function AppContent() {
   const { isLoading, isAuthenticated, showSplash } = useAppInitialization();
 
   useEffect(() => {
-    // Track app launch
     analyticsService.trackEvent('app_launched', {
       platform: Platform.OS,
       version: '1.0.0',
@@ -48,15 +47,21 @@ export default function App() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" backgroundColor="#2D5016" />
+          <RootNavigator isAuthenticated={isAuthenticated} />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  return (
     <Provider store={store}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <StatusBar style="auto" backgroundColor="#2D5016" />
-            <RootNavigator isAuthenticated={isAuthenticated} />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+      <AppContent />
     </Provider>
   );
 }

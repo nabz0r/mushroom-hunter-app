@@ -6,6 +6,9 @@ import { loginSuccess } from '@/store/slices/authSlice';
 import { setPermission } from '@/store/slices/locationSlice';
 import { analyticsService } from '@/services/analyticsService';
 import { sentryUtils } from '@/config/sentry';
+import { databaseService, mushroomDB } from '@/services/database';
+import { mockMushrooms } from '@/data/mockData';
+import { SSOProvider } from '@/services/ssoService';
 
 export function useAppInitialization() {
   const [isLoading, setIsLoading] = useState(true);
@@ -22,17 +25,29 @@ export function useAppInitialization() {
       // Show splash for minimum time
       setTimeout(() => setShowSplash(false), 2500);
 
+      // Initialize local database
+      await databaseService.initialize();
+
+      // Seed mushroom data into local DB for offline use
+      await mushroomDB.seedFromMockData(mockMushrooms);
+
       // Check authentication
-      const [userData, authToken] = await Promise.all([
+      const [userData, authToken, authProvider] = await Promise.all([
         AsyncStorage.getItem('@user_data'),
         AsyncStorage.getItem('@auth_token'),
+        AsyncStorage.getItem('@auth_provider'),
       ]);
 
-      if (userData && authToken) {
+      // For SSO users, token may be empty (local-only session)
+      const isSSO = authProvider === 'google' || authProvider === 'apple';
+      if (userData && (authToken || isSSO)) {
         const user = JSON.parse(userData);
-        dispatch(loginSuccess(user));
+        dispatch(loginSuccess({
+          ...user,
+          authProvider: (authProvider as SSOProvider | 'email') || 'email',
+        }));
         setIsAuthenticated(true);
-        
+
         // Set user for analytics and error tracking
         analyticsService.setUserId(user.id);
         analyticsService.setUserProperties({
@@ -40,8 +55,9 @@ export function useAppInitialization() {
           username: user.username,
           level: user.level,
           totalPoints: user.points,
+          authProvider: authProvider || 'email',
         });
-        
+
         sentryUtils.setUser(user);
       }
 
@@ -86,10 +102,10 @@ export function useAppInitialization() {
     }
   };
 
-  return { 
-    isLoading, 
-    isAuthenticated, 
+  return {
+    isLoading,
+    isAuthenticated,
     showSplash,
-    isInitialized: !isLoading && !showSplash 
+    isInitialized: !isLoading && !showSplash,
   };
 }
