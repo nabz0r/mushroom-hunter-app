@@ -1,29 +1,63 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { useAppDispatch } from '@/store';
-import { loginSuccess } from '@/store/slices/authSlice';
+import { loginStart, loginSuccess, loginFailure } from '@/store/slices/authSlice';
+import { authService } from '@/services/authService';
+import { validateEmail } from '@/utils/helpers';
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
 
-  const handleLogin = () => {
-    // TODO: Implement real authentication
-    dispatch(loginSuccess({
-      id: '1',
-      username: 'Chasseur123',
-      email: email,
-      level: 1,
-      points: 0,
-    }));
+  const validate = (): boolean => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'L\'email est requis';
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Format d\'email invalide';
+    }
+
+    if (!password) {
+      newErrors.password = 'Le mot de passe est requis';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLogin = async () => {
+    if (!validate()) return;
+
+    setIsLoading(true);
+    dispatch(loginStart());
+
+    try {
+      const response = await authService.login({ email, password });
+      dispatch(loginSuccess({
+        id: response.user.id,
+        username: response.user.username,
+        email: response.user.email,
+        level: response.user.level,
+        points: response.user.points,
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Identifiants incorrects';
+      dispatch(loginFailure(message));
+      Alert.alert('Erreur de connexion', message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,30 +76,43 @@ export function LoginScreen() {
 
           {/* Form */}
           <View className="space-y-4">
-            <TextInput
-              className="bg-white/10 text-white px-4 py-3 rounded-lg"
-              placeholder="Email"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <View>
+              <TextInput
+                className={`bg-white/10 text-white px-4 py-3 rounded-lg ${errors.email ? 'border border-red-500' : ''}`}
+                placeholder="Email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={(text) => { setEmail(text); setErrors(prev => ({ ...prev, email: undefined })); }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+              {errors.email && <Text className="text-red-400 text-sm mt-1 ml-1">{errors.email}</Text>}
+            </View>
 
-            <TextInput
-              className="bg-white/10 text-white px-4 py-3 rounded-lg mb-6"
-              placeholder="Mot de passe"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View>
+              <TextInput
+                className={`bg-white/10 text-white px-4 py-3 rounded-lg ${errors.password ? 'border border-red-500' : ''}`}
+                placeholder="Mot de passe"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={(text) => { setPassword(text); setErrors(prev => ({ ...prev, password: undefined })); }}
+                secureTextEntry
+                editable={!isLoading}
+              />
+              {errors.password && <Text className="text-red-400 text-sm mt-1 ml-1">{errors.password}</Text>}
+            </View>
 
             <TouchableOpacity
               onPress={handleLogin}
-              className="bg-primary-600 py-4 rounded-full"
+              className={`py-4 rounded-full ${isLoading ? 'bg-primary-400' : 'bg-primary-600'}`}
+              disabled={isLoading}
             >
-              <Text className="text-white text-center font-bold text-lg">Se connecter</Text>
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center font-bold text-lg">Se connecter</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity className="py-2">

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, Dimensions } from 'react-native';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, Dimensions, Platform, Linking, Switch, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Circle, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,39 +83,7 @@ export function MapScreen({ navigation }: any) {
     }
   };
 
-  const filteredSpots = spots.filter(spot => {
-    if (!spot.publicSpot && filters.publicOnly) return false;
-    if (filters.verifiedOnly && !spot.verified) return false;
-    if (filters.edibleOnly) {
-      const mushroom = mockMushrooms.find(m => m.id === spot.mushroomId);
-      if (!mushroom?.edible) return false;
-    }
-    
-    // Distance filter
-    if (currentLocation) {
-      const distance = calculateDistance(
-        currentLocation.latitude,
-        currentLocation.longitude,
-        spot.latitude,
-        spot.longitude
-      );
-      if (distance > filters.maxDistance) return false;
-    }
-    
-    // Search filter
-    if (searchQuery) {
-      const mushroom = mockMushrooms.find(m => m.id === spot.mushroomId);
-      const searchLower = searchQuery.toLowerCase();
-      if (!mushroom?.name.toLowerCase().includes(searchLower) &&
-          !spot.notes.toLowerCase().includes(searchLower)) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
@@ -127,7 +95,39 @@ export function MapScreen({ navigation }: any) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
-  };
+  }, []);
+
+  const filteredSpots = useMemo(() => spots.filter(spot => {
+    if (!spot.publicSpot && filters.publicOnly) return false;
+    if (filters.verifiedOnly && !spot.verified) return false;
+    if (filters.edibleOnly) {
+      const mushroom = mockMushrooms.find(m => m.id === spot.mushroomId);
+      if (!mushroom?.edible) return false;
+    }
+
+    // Distance filter
+    if (currentLocation) {
+      const distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        spot.latitude,
+        spot.longitude
+      );
+      if (distance > filters.maxDistance) return false;
+    }
+
+    // Search filter
+    if (searchQuery) {
+      const mushroom = mockMushrooms.find(m => m.id === spot.mushroomId);
+      const searchLower = searchQuery.toLowerCase();
+      if (!mushroom?.name.toLowerCase().includes(searchLower) &&
+          !spot.notes?.toLowerCase().includes(searchLower)) {
+        return false;
+      }
+    }
+
+    return true;
+  }), [spots, filters, currentLocation, searchQuery, calculateDistance]);
 
   const handleCenterOnUser = async () => {
     if (!hasPermission) {
@@ -335,11 +335,58 @@ export function MapScreen({ navigation }: any) {
         title="Filtres de la carte"
         height={400}
       >
-        <View className="p-4">
-          {/* Filter options would go here */}
-          <Text className="text-center text-gray-600">
-            Options de filtrage à implémenter
-          </Text>
+        <View className="p-4 space-y-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-gray-700">Comestibles uniquement</Text>
+            <Switch
+              value={filters.edibleOnly}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, edibleOnly: value }))}
+              trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+              thumbColor={filters.edibleOnly ? '#16a34a' : '#f4f3f4'}
+            />
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-gray-700">Spots publics uniquement</Text>
+            <Switch
+              value={filters.publicOnly}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, publicOnly: value }))}
+              trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+              thumbColor={filters.publicOnly ? '#16a34a' : '#f4f3f4'}
+            />
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-gray-700">Vérifiés uniquement</Text>
+            <Switch
+              value={filters.verifiedOnly}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, verifiedOnly: value }))}
+              trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+              thumbColor={filters.verifiedOnly ? '#16a34a' : '#f4f3f4'}
+            />
+          </View>
+          <View>
+            <Text className="text-gray-700 mb-2">Distance maximale : {filters.maxDistance >= 1000 ? `${(filters.maxDistance / 1000).toFixed(0)} km` : `${filters.maxDistance} m`}</Text>
+            <View className="flex-row justify-between">
+              {[1000, 5000, 10000, 25000].map((distance) => (
+                <TouchableOpacity
+                  key={distance}
+                  onPress={() => setFilters(prev => ({ ...prev, maxDistance: distance }))}
+                  className={`px-3 py-2 rounded-full ${filters.maxDistance === distance ? 'bg-green-600' : 'bg-gray-200'}`}
+                >
+                  <Text className={`text-sm ${filters.maxDistance === distance ? 'text-white font-semibold' : 'text-gray-700'}`}>
+                    {distance >= 1000 ? `${distance / 1000} km` : `${distance} m`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setFilters({ edibleOnly: false, publicOnly: true, verifiedOnly: false, maxDistance: 10000 });
+            }}
+            className="mt-2"
+          >
+            <Text className="text-green-600 text-center font-semibold">Réinitialiser les filtres</Text>
+          </TouchableOpacity>
         </View>
       </BottomSheet>
 
@@ -420,5 +467,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-import { Platform, Linking } from 'react-native';

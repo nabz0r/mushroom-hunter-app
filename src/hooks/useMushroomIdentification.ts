@@ -2,20 +2,21 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { aiService } from '@/services/aiService';
 import { mushroomService } from '@/services/mushroomService';
+import { gameService } from '@/services/gameService';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { addSpot } from '@/store/slices/mushroomSlice';
 import { updateUserPoints } from '@/store/slices/authSlice';
 import { analyticsService } from '@/services/analyticsService';
-import { MushroomIdentification } from '@/types';
+import { MushroomIdentificationResponse } from '@/types';
 
 interface UseMushroomIdentificationOptions {
-  onSuccess?: (identification: MushroomIdentification) => void;
+  onSuccess?: (identification: MushroomIdentificationResponse) => void;
   onError?: (error: string) => void;
 }
 
 export function useMushroomIdentification(options: UseMushroomIdentificationOptions = {}) {
   const [isIdentifying, setIsIdentifying] = useState(false);
-  const [identification, setIdentification] = useState<MushroomIdentification | null>(null);
+  const [identification, setIdentification] = useState<MushroomIdentificationResponse | null>(null);
   const dispatch = useAppDispatch();
   const { currentLocation } = useAppSelector(state => state.location);
   const { user } = useAppSelector(state => state.auth);
@@ -47,8 +48,8 @@ export function useMushroomIdentification(options: UseMushroomIdentificationOpti
       analyticsService.trackMushroomIdentified({
         id: result.id,
         name: result.mushroom.name,
-        rarity: 'common', // Would come from result
-        points: 0, // Would be calculated
+        rarity: result.rarity || 'common',
+        points: result.points || 0,
         confidence: result.mushroom.confidence,
       });
 
@@ -92,11 +93,17 @@ export function useMushroomIdentification(options: UseMushroomIdentificationOpti
 
       const newSpot = await mushroomService.createSpot(spotData);
       dispatch(addSpot(newSpot));
-      
-      // Award points (this would normally come from the API)
-      const points = calculatePoints();
+
+      // Calculate points using the rarity-based system
+      const rarity = identification?.rarity || 'common';
+      const points = gameService.calculatePointsForFind(rarity, {
+        isFirstOfDay: false,
+        isNewZone: false,
+        perfectPhoto: false,
+        groupHunt: false,
+      });
       dispatch(updateUserPoints(points));
-      
+
       // Track spot creation
       analyticsService.trackSpotCreated({
         mushroomId,
@@ -109,7 +116,7 @@ export function useMushroomIdentification(options: UseMushroomIdentificationOpti
         `Champignon ajouté avec succès ! +${points} points`,
         [{ text: 'Super !' }]
       );
-      
+
     } catch (error) {
       console.error('Error creating spot:', error);
       Alert.alert(
@@ -117,11 +124,6 @@ export function useMushroomIdentification(options: UseMushroomIdentificationOpti
         'Impossible d\'enregistrer le spot. Veuillez réessayer.'
       );
     }
-  };
-
-  const calculatePoints = (): number => {
-    // This would be calculated based on rarity, conditions, etc.
-    return Math.floor(Math.random() * 100) + 10;
   };
 
   const resetIdentification = () => {

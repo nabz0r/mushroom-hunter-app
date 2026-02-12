@@ -66,7 +66,7 @@ export const aiService = {
       return response.data.isCorrect;
     } catch (error) {
       console.error('Validation error:', error);
-      return false;
+      throw new Error('Failed to validate identification');
     }
   },
 
@@ -76,7 +76,7 @@ export const aiService = {
       return response.data;
     } catch (error) {
       console.error('Get similar species error:', error);
-      return [];
+      throw new Error('Failed to fetch similar species');
     }
   },
 };

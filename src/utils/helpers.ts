@@ -1,4 +1,4 @@
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
@@ -124,5 +124,3 @@ export const isMushroomInSeason = (seasons: string[]): boolean => {
   const currentSeason = getCurrentSeason();
   return seasons.includes(currentSeason);
 };
-
-import { Platform } from 'react-native';

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,8 @@ import { changeLanguage, getAvailableLanguages } from '@/i18n';
 import { notificationService } from '@/services/notificationService';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/slices/authSlice';
+import { authService } from '@/services/authService';
+import api from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function SettingsScreen() {
@@ -67,6 +69,8 @@ export function SettingsScreen() {
     );
   };
 
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
   const handleDeleteAccount = () => {
     Alert.alert(
       t('profile.deleteAccount'),
@@ -77,9 +81,16 @@ export function SettingsScreen() {
           text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
-            // TODO: Implement account deletion
+            setIsDeletingAccount(true);
+            try {
+              await api.delete(`/users/${user?.id}`);
+            } catch (error) {
+              // Continue with local cleanup even if API call fails
+              console.warn('Failed to delete account on server:', error);
+            }
             await AsyncStorage.clear();
             dispatch(logout());
+            setIsDeletingAccount(false);
           },
         },
       ]
@@ -275,10 +286,15 @@ export function SettingsScreen() {
           <TouchableOpacity
             onPress={handleDeleteAccount}
             className="mt-4 py-3"
+            disabled={isDeletingAccount}
           >
-            <Text className="text-red-600 text-center">
-              {t('profile.deleteAccount')}
-            </Text>
+            {isDeletingAccount ? (
+              <ActivityIndicator color="#DC2626" />
+            ) : (
+              <Text className="text-red-600 text-center">
+                {t('profile.deleteAccount')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
